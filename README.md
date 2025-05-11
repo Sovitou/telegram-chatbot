@@ -29,7 +29,7 @@ A production-ready Telegram chatbot powered by Qwen3 1.7B AI model through OpenR
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/telegram-ai-bot.git
+git clone https://github.com/Sovitou/telegram-ai-bot.git
 cd telegram-ai-bot
 
 # Install dependencies
