@@ -4,7 +4,7 @@
   "main": "bot.js",
   "type": "module",
   "scripts": {
-    "dev": "node bot.js"
+    "dev": "node src/bot.js"
   },
   "keywords": [],
   "author": "Khem Sovitou",
