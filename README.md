@@ -1,6 +1,5 @@
 ﻿# Telegram AI Chatbot
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/Sovitou/telegram-ai-bot)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Sovitou/telegram-ai-bot/blob/main/LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node.js-18.x-green.svg)](https://nodejs.org/)
 
