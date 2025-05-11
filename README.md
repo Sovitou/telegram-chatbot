@@ -1,7 +1,7 @@
 ﻿# Telegram AI Chatbot
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/your-username/telegram-ai-bot)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/your-username/telegram-ai-bot/blob/main/LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/Sovitou/telegram-ai-bot)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Sovitou/telegram-ai-bot/blob/main/LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node.js-18.x-green.svg)](https://nodejs.org/)
 
 A production-ready Telegram chatbot powered by Qwen3 1.7B AI model through OpenRouter. Demos full-stack integration with real-time AI response handling, contextual awareness, and enterprise-grade error recovery.
