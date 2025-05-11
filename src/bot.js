@@ -5,15 +5,70 @@ import axios from "axios";
 configDotenv();
 const bot = new Telegraf(process.env.HTTP_API);
 
+// Map to store user message histories
 const userMessageHistories = new Map();
+
+// Function to escape special characters for MarkdownV2
+const escapeMarkdownV2 = (text) => {
+  const specialChars = [
+    "_",
+    "*",
+    "[",
+    "]",
+    "(",
+    ")",
+    "~",
+    "`",
+    ">",
+    "#",
+    "+",
+    "-",
+    "=",
+    "|",
+    "{",
+    "}",
+    ".",
+    "!",
+  ];
+  let escapedText = text;
+  specialChars.forEach((char) => {
+    escapedText = escapedText.replace(
+      new RegExp(`\\${char}`, "g"),
+      `\\${char}`
+    );
+  });
+  return escapedText;
+};
+
+// Function to sanitize and format message for MarkdownV2
+const sanitizeMessage = (text) => {
+  // Split message into parts (code blocks and regular text)
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  const sanitizedParts = parts.map((part) => {
+    if (part.startsWith("```") && part.endsWith("```")) {
+      // Handle code block
+      const codeContent = part.slice(3, -3).trim();
+      const languageMatch = codeContent.match(/^(\w+)\n/);
+      const language = languageMatch ? languageMatch[1] : "";
+      const code = language
+        ? codeContent.slice(language.length + 1)
+        : codeContent;
+      return `\`\`\`${language}\n${escapeMarkdownV2(code)}\n\`\`\``;
+    }
+    // Escape regular text
+    return escapeMarkdownV2(part);
+  });
+  return sanitizedParts.join("");
+};
 
 bot.start((ctx) => {
   userMessageHistories.delete(ctx.message.from.id);
-  ctx.reply(
-    `🚀 Hello! I'm powered by Qwen3 1.7B and ready to help you on Telegram.` +
-      `\n🧠 Model features: Contextual understanding, Code generation, Multi-language support` +
-      `\n\nType any message to get started!`
+  const startMessage = escapeMarkdownV2(
+    `🚀 Hello! I'm powered by Qwen3 1.7B and ready to help you on Telegram.\n` +
+      `🧠 Model features: Contextual understanding, Code generation, Multi-language support\n\n` +
+      `Type any message to get started!`
   );
+  ctx.reply(startMessage, { parse_mode: "MarkdownV2" });
 });
 
 // Enhanced text message handler with Qwen3 integration
@@ -21,12 +76,6 @@ bot.on("text", async (ctx) => {
   try {
     const userId = ctx.message.from.id;
     const userMessage = ctx.message.text;
-
-    const userState = {
-      lastMessageTime: 0,
-      requestCount: 0,
-      recentRequests: [],
-    };
 
     await ctx.sendChatAction("typing");
 
@@ -37,8 +86,8 @@ bot.on("text", async (ctx) => {
           role: "system",
           content:
             "You are Qwen3 1.7B, a powerful AI developed by Tongyi Lab. " +
-            "Provide clear, concise, and accurate responses with proper formatting. " +
-            "Use code blocks for code suggestions and maintain a helpful tone.",
+            "Provide clear, concise, and accurate responses with proper formatting. Your role is a Telegram bot assistant. " +
+            "Use code blocks for code suggestions and maintain a helpful tone. Offer suggestions for the user.",
         },
       ]);
     }
@@ -72,37 +121,62 @@ bot.on("text", async (ctx) => {
       }
     );
 
+    // Log the full API response for debugging
+    console.log("OpenRouter API Response:", JSON.stringify(response.data, null, 2));
+
     // Extract AI response and update message history
     const aiMessage = response.data.choices?.[0]?.message;
-    if (aiMessage) {
+    if (aiMessage && aiMessage.content) {
       messageHistory.push(aiMessage);
       userMessageHistories.set(userId, messageHistory);
 
-      const enhancedMessage = `
-      Qwen3 Response:\n--------------------\n${aiMessage.content.trim()}\n--------------------\nYou can ask for clarification, examples, or dive deeper!😊\n
-      `.trim();
+      // Sanitize and format the AI response
+      const sanitizedContent = sanitizeMessage(aiMessage.content.trim());
+      // Create the enhanced message with footer
+      const footer = escapeMarkdownV2(
+        `\n--------------------\n\nThank you for using my AI Chatbot, @khem_sovitou 😊`
+      );
+      const enhancedMessage = `${sanitizedContent}${footer}`;
 
-      await ctx.sendChatAction("typing");
-      await ctx.reply(enhancedMessage, {
-        parse_mode: "Markdown",
-        disable_web_page_preview: true,
-      });
+      // Log the message for debugging
+      console.log("Sending message:", enhancedMessage);
+
+      // Check message length (Telegram limit: 4096 characters)
+      if (enhancedMessage.length > 4096) {
+        const truncatedMessage = enhancedMessage.slice(0, 4090) + "...";
+        await ctx.reply(truncatedMessage, {
+          parse_mode: "MarkdownV2",
+          disable_web_page_preview: true,
+        });
+      } else {
+        await ctx.sendChatAction("typing");
+        await ctx.reply(enhancedMessage, {
+          parse_mode: "MarkdownV2",
+          disable_web_page_preview: true,
+        });
+      }
     } else {
-      throw new Error(
-        "🤔 Hmm, I couldn't process that response. Let me try again!"
+      console.warn("Invalid API response structure:", response.data);
+      await ctx.reply(
+        escapeMarkdownV2(
+          `🤔 Hmm, I couldn't process the AI response. Please try again or simplify your request!`
+        ),
+        { parse_mode: "MarkdownV2" }
       );
     }
   } catch (error) {
-    console.error("Qwen3 API Error:", error);
-    await ctx.reply(
-      "⚠️ I'm currently unavailable. Let me suggest: " +
-        `\n- Check your Qwen3 connection status` +
-        `\n- Verify API configuration in .env` +
-        `\n- Ensure model hosting service is running`,
-      {
-        parse_mode: "Markdown",
-      }
+    console.error("Qwen3 API Error:", error.message, error.response?.data);
+    const errorMessage = escapeMarkdownV2(
+      `⚠️ I'm currently unavailable. Let me suggest:\n` +
+        `- Check your Qwen3 connection status\n` +
+        `- Verify API configuration in .env\n` +
+        `- Ensure model hosting service is running\n` +
+        `Error details: ${error.message}`
     );
+    await ctx.reply(errorMessage, {
+      parse_mode: "MarkdownV2",
+      disable_web_page_preview: true,
+    });
   }
 });
 
